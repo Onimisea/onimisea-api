@@ -8,10 +8,12 @@ const cookieParser = require("cookie-parser");
 
 const app = express();
 
-app.use(cors({
-  credentials: true,
-  origin: "http://localhost:3000"
-}));
+app.use(
+  cors({
+    credentials: true,
+    origin: "http://localhost:3000",
+  })
+);
 app.use(express.json());
 app.use(cookieParser());
 
@@ -19,6 +21,7 @@ const port = process.env.PORT || 2096;
 const jwt_secret = process.env.JWT_SECRET;
 const saltNumber = 10;
 
+// Admin Register
 app.post("/api/v1/admin/register", async (req, res) => {
   try {
     const allAdmins = await pool.query("SELECT * FROM admins");
@@ -92,6 +95,7 @@ app.post("/api/v1/admin/register", async (req, res) => {
   }
 });
 
+// Admin Login
 app.post("/api/v1/admin/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -102,7 +106,13 @@ app.post("/api/v1/admin/login", async (req, res) => {
     let admin;
 
     if (getAdmin.rowCount > 0 && getAdmin.rows.length > 0) {
-      admin = getAdmin.rows[0];
+      admin = {
+        id: getAdmin.rows[0].id,
+        username: getAdmin.rows[0].username,
+        email: getAdmin.rows[0].email,
+        phone: getAdmin.rows[0].phone,
+        role: getAdmin.rows[0].role,
+      };
     } else {
       admin = null;
     }
@@ -110,29 +120,26 @@ app.post("/api/v1/admin/login", async (req, res) => {
     if (admin) {
       const passwordCorrect = bcrypt.compareSync(
         password.toString(),
-        admin.password
+        getAdmin.rows[0].password
       );
 
       if (passwordCorrect) {
-        const adminEmail = admin.email;
-        const adminToken = jwt.sign({ adminEmail }, jwt_secret, {
-          expiresIn: "15mins",
+        // const adminEmail = admin.email;
+        const adminToken = jwt.sign({ admin }, jwt_secret, {
+          expiresIn: "15min",
         });
 
         res.cookie("adminToken", adminToken);
 
-        console.log(adminToken);
-
         const resObj = {
           message: "Admin login successful",
-          loggedInAdmin: admin,
+          adminToken: adminToken,
         };
 
         res.json(resObj);
       } else {
         const resObj = {
           message: "Admin login failed! Incorrect password!!",
-          loggedInAdmin: null,
         };
 
         res.json(resObj);
@@ -140,7 +147,6 @@ app.post("/api/v1/admin/login", async (req, res) => {
     } else {
       const resObj = {
         message: "Login failed! No Admin found with your email!!",
-        loggedInAdmin: null,
       };
 
       res.json(resObj);
@@ -152,6 +158,42 @@ app.post("/api/v1/admin/login", async (req, res) => {
   } catch (error) {
     console.error(error);
   }
+});
+
+const verifyUser = (req, res, next) => {
+  const adminToken = req.cookies.adminToken;
+
+  if (!adminToken) {
+    return res.json({ error: "You are not AUTHENTICATED, please login!" });
+  } else {
+    jwt.verify(adminToken, jwt_secret, (error, decoded) => {
+      if (error) {
+        return res.json({ error: "Invalid TOKEN, please login!" });
+      } else {
+        req.admin = decoded.admin;
+        next();
+      }
+    });
+  }
+};
+
+// Verify Auth
+app.get("/api/v1/admin", verifyUser, async (req, res) => {
+  try {
+    return res.json({
+      message: "You have been AUTHENTICATED, continue with your work...",
+      isAuth: true,
+      adminInfo: req.admin,
+    });
+  } catch (error) {
+    console.error(error);
+  }
+});
+
+// Logout Admin
+app.get("/api/v1/admin/logout", async (req, res) => {
+  res.clearCookie("adminToken");
+  res.json({ message: "Logged out Admin successfully" });
 });
 
 app.listen(port, () => {
