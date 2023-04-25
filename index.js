@@ -126,7 +126,7 @@ app.post("/api/v1/admin/login", async (req, res) => {
       if (passwordCorrect) {
         // const adminEmail = admin.email;
         const adminToken = jwt.sign({ admin }, jwt_secret, {
-          expiresIn: "15min",
+          expiresIn: "60min",
         });
 
         res.cookie("adminToken", adminToken);
