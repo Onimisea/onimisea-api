@@ -8,3 +8,16 @@ CREATE TABLE admins (
   password VARCHAR(1000) NOT NULL,
   role VARCHAR(15) NOT NULL 
 );
+
+CREATE TABLE portfolio (
+    id BIGSERIAL NOT NULL PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    excerpt TEXT,
+    featured_image TEXT,
+    live_url VARCHAR(255),
+    github_url VARCHAR(255),
+    content TEXT
+);
+
+ALTER TABLE portfolio
+ADD COLUMN date_added TIMESTAMP DEFAULT CURRENT_TIMESTAMP;

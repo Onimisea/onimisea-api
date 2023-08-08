@@ -9,3 +9,13 @@ const pool = new Pool({
 });
 
 module.exports = pool;
+
+
+// Documentation
+
+// Connect
+// psql -U postgres -d onimisea -h localhost -p 5432
+
+
+// Delete
+// DROP TABLE IF EXISTS portfolio;
